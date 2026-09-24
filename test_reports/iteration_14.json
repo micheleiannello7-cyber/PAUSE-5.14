@@ -1,0 +1,40 @@
+{
+  "summary": "Frontend-only verification of the reader top-bar reveal/hide bug fix in /deep-dive/[id].tsx. Tested on two stories (v4-caffe-espresso, v5-lez-muscoli) at viewport 390x844. The bug being fixed — reader-progress top bar remaining visible after scrolling back to the intro (scrollTop=0) — is FIXED. All required assertions pass: initial opacity=0, chapter1 opacity=1, back-to-top opacity=0, mid-scroll (200) opacity=0, one-page (844) opacity=1, and smooth back-to-top opacity=0 on both stories. Reveal transition begins around scrollTop~150-200 and reaches 1 by ~500, consistent with the bigTitleY threshold computed from page geometry (coverTop + cardH + spacing.md). No React/Reanimated errors were observed (only benign web-only warnings).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "verified_flows": [
+    {"story": "v4-caffe-espresso", "steps": {
+      "initial_opacity": 0,
+      "chapter1_after_start_tap": 1,
+      "smooth_back_to_top": 0,
+      "direct_scrollTop_200": 0,
+      "direct_scrollTop_844": 1,
+      "direct_back_to_top": 0,
+      "reveal_curve": {"0": 0, "100": 0, "300": 0.67, "500": 1, "700": 1, "844": 1}
+    }},
+    {"story": "v5-lez-muscoli", "steps": {
+      "initial_opacity": 0,
+      "chapter1_after_start_tap": 1,
+      "smooth_back_to_top": 0,
+      "direct_scrollTop_844": 1,
+      "direct_back_to_top": 0
+    }}
+  ],
+  "test_report_links": ["/app/test_reports/artifacts_iter14/"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Benign console warnings observed (not blockers): 'textShadow*' style props deprecated -> switch to 'textShadow' shorthand in reader-header.tsx and deep-dive/[id].tsx; 'props.pointerEvents' deprecated -> move to style.pointerEvents in LinearGradient usages; '[Reanimated] Selected easing is not currently supported on web. Using linear easing instead.' from Easing.inOut(Easing.cubic) in scrollToSection() — web-only fallback, native works fine."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fix for reader-progress header reveal/hide at intro (scrollTop=0) verified on v4-caffe-espresso and v5-lez-muscoli. The reveal SharedValue is driven by bigTitleY computed via useEffect from coverTop+cardH+spacing.md (see deep-dive/[id].tsx:120), so subsequent scroll handler updates (onScroll @138-141) recompute the interpolation correctly and go back to 0 on return-to-top. Deprecated textShadow*/pointerEvents warnings are pre-existing web-only, not related to this fix.",
+  "rca_of_issue": "Previously, bigTitleY was set from an onLayout y of the big title element inside the sheet; on web with the current layout, that reported a value that yielded titleTop <= 0 near the top, so the interpolate range collapsed and reveal snapped to 1 once you had scrolled past it. Because the range was based on stale/incorrect layout Y, on return to y=0 it did not fall back to 0. Fix: derive bigTitleY from known page geometry (coverTop + cardH + spacing.md) via useEffect, giving a stable, correct threshold that the onScroll interpolate maps to 0 when y is near 0. Verified: on both stories, opacity is 0 at scrollTop=0 both initially and after coming back from chapter 1."
+}

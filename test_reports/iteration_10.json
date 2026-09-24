@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 10 — Targeted cover-batch verification completed for reports 5c7da1546ce245039d51fb4f8d4adbc2 (pilot3) and 7dbe6ded62644d7e9ccf42931de7f6d0 (main20). Pytest suite added and passed (9/9) covering: all 46 public /api/media/{id}?size=hero|thumb endpoints for new23, WebP decoding and exact dimensions (896x1200 / 448x600), source-digest path consistency, baseline373 preservation in Mongo, catalog counts 437 total with 396 covered (349 generated + 47 photo) and 41 missing, dry-run non-mutation + lock safety, media_opt passthrough/resize/EXIF orientation behavior, and current-version loading for the two locally retouched covers. Frontend mobile web checks at 390 and 320 widths for root + whale reader + cave lesson reader show loaded images and no horizontal overflow; no error selectors detected. Budget stop remains expected and confirmed (latest run status=stopped, stop_reason=budget_or_quota), and no cover-generation process is running.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "onboarding -> home existing-cover open",
+        "issue": "In automation runs, onboarding screen remained visible and deep-dive links were not discoverable after CTA click, so this specific transition/open-from-home path could not be conclusively validated in the same scripted run.",
+        "affected_testIDs": []
+      }
+    ],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter30_cover_batch_targeted.py",
+    "/app/test_reports/pytest/iter30_cover_batch_targeted.xml",
+    "/app/test_reports/artifacts_iter10/home_390.jpeg",
+    "/app/test_reports/artifacts_iter10/whale_390.jpeg",
+    "/app/test_reports/artifacts_iter10/lesson_320.jpeg"
+  ],
+  "action_items": [
+    "Main agent: run one quick manual UI pass specifically for onboarding->Home->open existing cover on web preview to close the only unconfirmed frontend step.",
+    "No backend fixes required for this scope; preserve current dry-run and budget-stop behavior."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py is 1500+ lines; split into feature routers/services for maintainability and safer future regressions.",
+    "frontend/src/components/story-hero.tsx composes testID with useId() (dynamic suffix), which reduces selector stability for deterministic automated UI tests."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter30_cover_batch_targeted.py",
+    "/app/test_reports/iteration_10.json"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "90%"
+  },
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Byte totals for the new23 from report hero_bytes: hero_total=1570044, thumb_total=509934, source_total=1570044 (source equals hero due pass-through for 1200 max; additional thumb bytes are expected derivative storage). Latest cover_generation_runs record is run 7dbe... with status=stopped and stop_reason=budget_or_quota.",
+  "rca_of_issue": "UI-only verification gap: onboarding CTA click in automation did not expose deep-dive links in the observed state, likely because onboarding state progression needs additional explicit selections/awaits tied to app state persistence. Backend APIs and media endpoints for requested scope are fully passing."
+}

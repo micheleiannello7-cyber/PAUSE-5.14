@@ -1,0 +1,36 @@
+{
+  "summary": "Reader paging fix verified on 390x844 mobile web at /deep-dive/why-we-yawn plus 3 additional stories (mars-red, octopus-brains, how-oled-works). Nested-scroll audit: for all 8 pages (intro, chapter-1..6, end) inside [data-testid=deep-dive-scroll], nested elements with overflow scroll/auto = 0. Page heights: scroll container clientHeight=844; every page (intro + all 6 chapter pages) reports height=844 and consecutive tops=0/844/1688/2532/3376/4220/5064; end page also 844 (grow=true is applied but content still fits within 844 for this story). Chapter-content fit: for why-we-yawn, chapH per chapter = 487/521/456/425/425/456 - all < pageH 844 and inside their page rectangles. For mars-red, octopus-brains, how-oled-works: all 6 chapters per story fit (max chapH observed 552). Wheel scrolling starting from intro reaches every chapter and the ending: header label updates 1 OF 6 -> 2 OF 6 -> ... -> 6 OF 6 -> REMEMBER THIS, and the last page renders like-button, bookmark-button, share-story, next-story (Continue with another story) all inViewport=true. Tapping [data-testid=deep-dive-start] scrolls to chapter 1 with label '1 OF 6'. Info grid: story-info-grid-{kind,category,time} contain icon + value only (CURIOSITY / Human body / 4 min); story-info-grid-*-label testIDs do NOT exist; measured cell height = 88px (<= 100). Presentation order on intro (all above viewport 844): cover-card 16-262, cover-title 274-338, reader-intro-eyebrow 354-369, deep-dive-hook 377-485, story-info-grid 501-589, deep-dive-start 605-665. No React/Reanimated errors and no page errors. Persisting console deprecation warnings from prior iter remain (not new regressions): textShadow* props, props.pointerEvents, and a warning on RN Web that Animated.ScrollView emits 'scrollTo(y, x, animated) is deprecated - use scrollTo({x, y, animated})'.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "scrollTo signature (RN Web)", "issue": "Console warning: '`scrollTo(y, x, animated)` is deprecated. Use `scrollTo({x: 5, y: 5, animated: true})` instead.' Reference: /app/frontend/app/deep-dive/[id].tsx already uses the object form in scrollToSection; the warning likely originates from an internal RN Web pathway or another caller. Not blocking; keep for cleanup."},
+      {"component": "pointerEvents prop", "issue": "Persisting warning: 'props.pointerEvents is deprecated. Use style.pointerEvents'. References (unchanged): /app/frontend/src/components/reader-cover-backdrop.tsx and /app/frontend/src/components/story-info-grid.tsx:36,44."},
+      {"component": "textShadow style props", "issue": "Persisting warning: 'textShadow*' style props are deprecated. Use 'textShadow'. References (unchanged): /app/frontend/app/deep-dive/[id].tsx styles (coverTitle/introEyebrow/hook)."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iter8_intro.jpeg",
+    "/app/test_reports/iter8_end2.jpeg"
+  ],
+  "action_items": [
+    "None required for the paging fix; all acceptance criteria met.",
+    "Optional cleanup: migrate deprecated pointerEvents prop to style.pointerEvents (reader-cover-backdrop.tsx, story-info-grid.tsx).",
+    "Optional cleanup: migrate textShadow* to unified textShadow string (deep-dive/[id].tsx)."
+  ],
+  "critical_code_review_comments": [
+    "reader-page.tsx: outer View has fixed height=pageH (or minHeight when grow=true) with no ScrollView inside; measured content triggers compact 0->1->2 typography until it fits. Verified pages contain 0 nested scrollables.",
+    "deep-dive/[id].tsx uses snapToOffsets = [0, pageH, 2*pageH, ...] with disableIntervalMomentum and decelerationRate='fast' on the outer Animated.ScrollView; wheel scrolling on web reliably advances the section and updates the header label.",
+    "story-info-grid.tsx renders only iconWrap + value Text per cell; label element removed; cellHeight measured 88px (<= 100).",
+    "reader-section.tsx: ChapterSection accepts a numeric compact prop and shrinks title/paragraph typography accordingly (fontSize 27->24->22 and 17.5->16->14.5)."
+  ],
+  "updated_files": ["/app/test_reports/iteration_8.json"],
+  "success_rate": {"backend": "N/A (frontend-only per request)", "frontend": "100% of required checks"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Correct header label testID is [data-testid=deep-dive-page-label] (not reader-header-label). On web, prefer page.mouse.wheel(0, 900) over programmatic scrollTo on [data-testid=deep-dive-scroll] to advance sections - programmatic scrollTo alone does not always fire Reanimated's onScroll handler and section state may not update. hasTouch is not enabled by default in the automation context, so page.touchscreen.tap fails; use mouse.wheel or mouse drag for gesture testing. To assert nested-scroll absence, iterate all descendants of a page and check computedStyle.overflow(X|Y) in {auto,scroll}.",
+  "rca_of_issue": "N/A - all acceptance criteria for the paging fix are met on 390x844: no nested ScrollViews inside pages, each page equals scroll container height, wheel/touch-equivalent scrolling advances chapters and reaches the ending buttons, chapter content fits within each page across multiple stories, info-grid badges show icon+value only, and presentation order is unchanged."
+}

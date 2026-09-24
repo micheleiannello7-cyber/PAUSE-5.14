@@ -1,0 +1,56 @@
+{
+  "summary": "Iteration 11 — Home deck linear-timeline behaviour, single-batch cover prefetch, reader info-grid tight category icon, and discover-batch/category-media backend endpoints all verified. Pytest suite (6/6 passing) at /app/backend/tests/test_iter11_deck_batch.py covers discover-batch pagination/uniqueness/count-limits/interests, category-media?cutout=true&tight=true PNG RGBA, and /api/media hero WebP. Backend startup log confirms 'Media cache warm-up: 710 files'. Frontend at 390x844: first render shows exactly one deck-layer-next and NO deck-layer-previous; only ONE /api/discover-batch request (count=7) is fired, no /api/discover-next requests; the active hero <img> is already complete (naturalWidth=896) before the deck is shown. Swipe-left introduces the previous layer, swipe-right returns to first card and removes it. After ~6 swipes-left, a second /api/discover-batch with exclude=<7 ids> is fired, deck grows to 14 with no duplicated ids and no abrupt jumps. Tapping a category tile resets the deck and issues a fresh batch with interests=<cat>, previous layer stays absent. Tapping the active card opens /deep-dive/. Reader info-grid on /deep-dive/black-holes-basics and /deep-dive/why-we-yawn: story-info-grid-category-icon <img> src contains 'tight=true', loads (naturalWidth=273 for spazio, 143 for corpo-umano), and all three cells are 88px tall (equal height). Language toggle Profile it→IT triggers one additional /api/discover-batch?lang=it and Home shows no previous layer. 320x640 Home has no horizontal overflow. 0 console errors during the full run. ONE reproducible issue found: at the first card, a right-drag (rubber-band scenario) navigates to /deep-dive/ instead of elastically snapping back — see rca_of_issue.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "HomeStoryDeck / discover-swipe-area",
+        "issue": "At the first card (cursor=0), a horizontal RIGHT-drag (~150px) intended to trigger the rubber-band navigates to /deep-dive/<id> instead of snapping back. The Pan gesture appears not to cancel the underlying HomeStoryCard tap when translation is blocked (canPrev=false). Left-drag / swipe-left works correctly. Reference: /app/frontend/src/components/home-story-deck.tsx:96-110 (Pan.activeOffsetX([-10,10]) + card Pressable onOpen).",
+        "testID": "discover-swipe-area",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Home /discover @320px",
+        "issues": [
+          "Category tile labels wrap to two lines because 4 tiles in a row leave very narrow cells (e.g. 'Technolo\\n gy', 'Corpo\\n umano'). No horizontal overflow, but tile labels look cramped at the smallest supported width."
+        ]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter11_deck_batch.py",
+    "/app/test_reports/pytest/iter11_deck_batch.xml",
+    "/app/test_reports/artifacts_iter11/home_first_render.jpeg",
+    "/app/test_reports/artifacts_iter11/deck_after_many_swipes.jpeg",
+    "/app/test_reports/artifacts_iter11/info_grid_black-holes-basics.jpeg",
+    "/app/test_reports/artifacts_iter11/info_grid_why-we-yawn.jpeg",
+    "/app/test_reports/artifacts_iter11/home_320.jpeg",
+    "/app/test_reports/artifacts_iter11/deep_dive_from_home.jpeg"
+  ],
+  "action_items": [
+    "Investigate rubber-band vs tap disambiguation at cursor=0. When Pan gesture is 'blocked' (canPrev=false && translationX>0), ensure the Pressable inside HomeStoryCard cannot fire onOpen for the same interaction. Possible fixes: raise Pan.activeOffsetX to a smaller value (e.g. [-6,6]) so pan claims earlier, wrap the card in a Gesture.Native().requireExternalGestureToFail, or handle onOpen only on Gesture.Tap composed with Pan.",
+    "Cosmetic: at 320px, consider reducing category tile columns to 3 or shrinking font/padding so labels stay on one line."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py is 1599 lines — still worth splitting into feature routers (media, discover, user, tts, purchases).",
+    "home-story-deck.tsx: the tap-on-active card is only guarded by `!moving.current` inside onOpen; a Gesture.Tap composed with the existing Pan (Gesture.Exclusive/Race) would remove the current ambiguity between rubber-band and tap.",
+    "story-info-grid uses `boxShadow: `0px 10px 24px ${colors.glassShadow}` as any` — proper cross-platform shadow (shadowOffset/shadowOpacity/elevation) would avoid the `as any` cast and web-only fallback."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter11_deck_batch.py",
+    "/app/test_reports/iteration_11.json"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "90%"},
+  "seed_data_creation": "None. All tests use anonymous user IDs generated per-run.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend media cache warm-up now runs on startup and logs '710 files' warmed. discover-batch enforces count ≤ 14 (422 on 15) and returns unique ids honouring exclude. Frontend Home renders a strict linear deck (prev=0, next=1 on first render), fires ONE /api/discover-batch initially, prefetches heroes before rendering (Image.prefetch of first COVERS_BEFORE_SHOW=3), and appends new batches with exclude= only when cursor is within PREFETCH_AHEAD=3 of the end. discover-next is not called anywhere in the Home flow. Only outstanding UI issue is rubber-band at first card triggering tap→deep-dive; validate with real touch or after gesture composition fix.",
+  "rca_of_issue": "Rubber-band bug RCA: HomeStoryDeck wires the pan handler on <View testID='discover-swipe-area'> via GestureDetector with Gesture.Pan().activeOffsetX([-10,10]). Inside the same viewport, each StoryLayer renders HomeStoryCard which is (per usage) a Pressable that calls onOpen. On web, Playwright emits mousedown at (x0=0.15*width, y=0.5*height) followed by 12 tight mousemove steps of ~12.5px each and mouseup. Two of my three trials showed the deck NOT recognising the drag as a Pan (canPrev is false so translation is dampened *0.16 and never crosses the visual threshold; the JS Pressable inside receives mousedown+mouseup within its bounds and fires as a click). Steps to reproduce: open /discover on 390x844, without moving cursor perform mouse.down at ~15% width of discover-swipe-area, drag +150px right over ~50–100ms, release → URL changes to /deep-dive/<active story id>. Expected: card should elastically resist and spring back with URL unchanged. Mitigation: compose Gesture.Race(pan, tap) so pan wins even when translation is dampened, or move onOpen to a Gesture.Tap on the card that requires pan to fail (Gesture.Simultaneous+manualActivation) — see action_items."
+}

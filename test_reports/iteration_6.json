@@ -1,0 +1,37 @@
+{
+  "summary": "Frontend-only regression of the redesigned reader (/deep-dive/[id]) on 390x844 mobile web preview. Onboarding intro -> topics -> Home tabs works (categories load, no crashes). Reader presentation renders all required testIDs with correct values (CURIOSITY, Human body, 4 min), deep-dive-start CTA fits fully in viewport (bottom=691 vs vp_h=844) without scrolling. Tapping deep-dive-start scrolls into chapter 1 (deep-dive-page-chapter-1 visible) and the reader header shows '1 OF 6'. Programmatic scrollTop on [data-testid=deep-dive-scroll] to bottom reveals ReaderEnding with like-button, bookmark-button, share-story, next-story and no console errors. Mini-lesson (v4-lez-densita) shows STORY TYPE 'MINI LESSON' in info card. Home -> story card -> reader -> back returns to /discover. No React/Reanimated console errors observed on any screen tested. No frontend bugs found for the redesign.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iter6_presentation.jpeg",
+    "/app/test_reports/iter6_chapter1.jpeg",
+    "/app/test_reports/iter6_ending.jpeg",
+    "/app/test_reports/iter6_lesson_presentation.jpeg",
+    "/app/test_reports/iter6_after_onboarding.jpeg",
+    "/app/test_reports/iter6_home.jpeg",
+    "/app/test_reports/iter6_home_to_reader.jpeg"
+  ],
+  "action_items": [
+    "Optional: add a testID to the reader back affordance (e.g. reader-back or header-back) - SwipeBack exposes no data-testid, so automated back navigation currently falls back to browser history.",
+    "Optional (backend, out of this scope): GET /api/stories?kind=lesson (or =lessons) returns kind='story' items - the kind filter appears to be ignored on the list endpoint. Reader itself resolves lessons correctly by id, so this doesn't affect the redesign."
+  ],
+  "critical_code_review_comments": [
+    "deep-dive/[id].tsx correctly wires all requested testIDs (deep-dive-cover-card, deep-dive-cover-title, reader-intro-eyebrow, deep-dive-hook, story-info-grid[-kind|-category|-time][-value], deep-dive-start, deep-dive-scroll, deep-dive-page-chapter-N, deep-dive-page-intro).",
+    "ReaderCoverBackdrop.hasCover falls back to LessonCover only when both hero_image_generated and hero_image are missing; lessons with a generated cover use the photo layer (verified on v4-lez-densita). This matches product intent.",
+    "Reader presentation layout (coverH = clamp(280, 40% of window, 360)) leaves deep-dive-start visible above the fold on 390x844; verified bbox y=631 h=60 bottom=691 vs vp_h=844."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_6.json"
+  ],
+  "success_rate": {"backend": "not tested (skipped per request)", "frontend": "100% (all requested flows and testIDs verified)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reader testIDs verified on 390x844: deep-dive-cover-card, deep-dive-cover-title, reader-intro-eyebrow ('INTRODUCTION'), deep-dive-hook, story-info-grid + kind/category/time cells with -value/-label, deep-dive-start. Header progress label uses format 'N OF M' (EN) / 'N DI M' (IT) - not 'N/M'. ReaderEnding uses testIDs 'like-button', 'bookmark-button', 'share-story', 'next-story', and the container 'deep-dive-page-end'. No testID exists on the back affordance; use page.go_back() for e2e back-navigation tests. Onboarding flow: onboarding-intro-continue -> chip-<catId>|chip-all -> onboarding-continue -> /discover.",
+  "rca_of_issue": "N/A - no bug reproduced. The redesigned presentation, chapter paging entry, and ending screen all render correctly with no console errors."
+}

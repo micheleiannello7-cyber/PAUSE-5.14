@@ -1,0 +1,40 @@
+{
+  "summary": "Full reader redesign regression on 390x844 mobile web. Backend cutout endpoint returns 200 image/png (316x316 RGBA, all 4 corners alpha=0 => transparent). Frontend presentation order verified via bounding boxes: cover-card(top=16,h=246,bottom=262) -> cover-title(top=274, gap=12 below card, no overlap) -> reader-intro-eyebrow(354, text 'INTRODUCTION') -> deep-dive-hook(377) -> story-info-grid(501) -> deep-dive-start(641,bottom=701, fully visible < vp 844). Info grid: for kind/category/time, order label < icon < value confirmed; values 'CURIOSITY', 'Human body', '4 min'. Category icon rendered by expo-image (DIV wrapper with inner <img>) whose src is https://.../api/category-media/corpo-umano?v=colorful-3d-v3&delivery=colorful-3d-v3&cutout=true (contains cutout=true). Time icon is the local 3D clock image asset. No halo/glow behind icons detected. Paging: scroll container height=844; all 8 pages (intro, chapter-1..6, end) each have height 844. Tapping deep-dive-start scrolls to chapter 1 and header label becomes '1 OF 6'. Programmatic scroll to last page reveals like-button, bookmark-button, share-story, next-story, all visible. Mini-lesson /deep-dive/v4-lez-densita presentation shows STORY TYPE 'MINI LESSON'. Home -> story card -> reader -> back returns to /discover. No React/Reanimated console errors and no page errors. Deprecation warnings detected: 'textShadow*' style props (RN Web), and 'props.pointerEvents is deprecated. Use style.pointerEvents' -- reported below.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "reader intermediate paging (web)", "issue": "Programmatic scrollTo(2*pageH) on [data-testid=deep-dive-scroll] did not update the header 'N OF M' label within 1.2s in this run (label read back as null via full-text scan). Visual scrolling to the end still shows correct chapter/end content and all end buttons; taps on deep-dive-start still update to '1 OF 6'. This is a web-only nuance because Animated.ScrollView's Reanimated scroll handler may not fire for programmatic scrollTo without a synthetic event. Native fling smoothness cannot be verified on web (per agent-to-agent context) - reporting for awareness only.", "affected_testIDs": ["deep-dive-scroll"]}
+    ],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "pointerEvents prop", "issue": "'props.pointerEvents is deprecated. Use style.pointerEvents' console warning on reader. Reference: /app/frontend/src/components/reader-cover-backdrop.tsx:59 (pointerEvents=\"none\" on Animated.View) and /app/frontend/src/components/story-info-grid.tsx:36,44 (pointerEvents=\"none\" on LinearGradient). Move to style.pointerEvents."},
+      {"component": "textShadow style props", "issue": "'textShadow*' style props are deprecated. Use 'textShadow'. Emitted by RN Web. Sources: /app/frontend/app/deep-dive/[id].tsx:381 (coverTitle), :389 (introDot boxShadow ok), :392 (introEyebrow), :397 (hook) using textShadowColor/Offset/Radius. Migrate to unified 'textShadow' shorthand."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iter7_presentation.jpeg",
+    "/app/test_reports/iter7_chapter1.jpeg",
+    "/app/test_reports/iter7_ending.jpeg",
+    "/app/test_reports/iter7_lesson.jpeg"
+  ],
+  "action_items": [
+    "Optional cleanup: migrate deprecated 'pointerEvents' prop to style.pointerEvents in reader-cover-backdrop.tsx and story-info-grid.tsx.",
+    "Optional cleanup: migrate textShadow* style props to the unified 'textShadow' string in deep-dive/[id].tsx styles (coverTitle/introEyebrow/hook)."
+  ],
+  "critical_code_review_comments": [
+    "deep-dive/[id].tsx wires all required testIDs and places the title BELOW the cover card via a separate heroTitleWrap after coverArea; gap measured at 12px (title top 274, card bottom 262).",
+    "story-info-grid.tsx renders label ABOVE the icon and value BELOW; category cell uses CategoryArtMark with plain=true and transparent backgroundColor - the emitted URL contains cutout=true so the backend returns the cut-out PNG.",
+    "reader-page.tsx sets its outer View to height=pageH (equal to Animated.ScrollView clientHeight measured on layout), so every page in [data-testid=deep-dive-scroll] is exactly one screen tall (verified: all 8 children == 844).",
+    "Reader has no runtime errors; only deprecation warnings for RN Web textShadow* and pointerEvents props."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_7.json"
+  ],
+  "success_rate": {"backend": "100% (1/1 endpoint: category-media cutout)", "frontend": "100% of required checks (presentation order, info grid order/values, category cutout src, paging structure, chapter navigation on tap, end page buttons, mini-lesson, home->reader->back)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Reader paging on Expo web: scroll container is [data-testid=deep-dive-scroll] with clientHeight == page height (844 on 390x844). Programmatic scrollTo may not trigger Reanimated onScroll reliably on web; tapping deep-dive-start does update section state (header shows 'N OF M'). To verify chapter N on web, prefer clicking deep-dive-start and then scrolling by discrete pageH multiples with a short delay, and read chapter content via [data-testid=deep-dive-page-chapter-N]. Category cutout URL pattern: /api/category-media/{catId}?v=colorful-3d-v3&delivery=colorful-3d-v3&cutout=true; the inner <img> inside the DIV wrapper carries the src.",
+  "rca_of_issue": "N/A - no bugs reproduced. All bug-fix acceptance criteria in the review request are met."
+}

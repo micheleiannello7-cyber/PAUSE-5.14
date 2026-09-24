@@ -1,0 +1,50 @@
+{
+  "summary": "Iteration 12 completed for both backend and frontend. Backend pytest passed (11/11) for health, discover-batch uniqueness/exclude, category-media, media WebP, and new read-only cover-run checks. Frontend mobile-web gesture tests passed for incoming-card held-drag preview metrics at ~25% and ~50%, cancel/reverse snap-back, forward/back symmetry, first-card right rubber-band no navigation, tap-after-drag opens reader, filter reset to first position, reduced-motion anticipation disable, and 390x844/320x640 no horizontal overflow. Cover batch report 56ba... is STOPPED by budget with partial progress only (17/41 generated, 1 ChatError).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/app/memory/cover_batches/56ba5742cf674cb7a8acbbc14cf85680.json",
+        "issue": "Cover generation is not complete: batch stopped on budget_or_quota after 17 generated out of total 41; one failed item logged as ChatError (lez-orientarsi-stelle).",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter31_cover_run_readonly.py",
+    "/app/backend/tests/test_iter11_deck_batch.py",
+    "/app/test_reports/pytest/iter31_backend.xml",
+    "/app/test_reports/artifacts_iter31/discover_390_rest.jpeg",
+    "/app/test_reports/artifacts_iter31/discover_390_hold50.jpeg",
+    "/app/test_reports/artifacts_iter31/deep_dive_after_tap.jpeg",
+    "/app/test_reports/artifacts_iter31/discover_320.jpeg"
+  ],
+  "action_items": [
+    "If user reloads credit, resume missing-cover generation from remaining 24 only; do not regenerate existing396 and keep current stop-on-budget behavior.",
+    "Investigate ChatError for lez-orientarsi-stelle in current batch report before next resume run.",
+    "Main agent can monitor future run completion and re-run read-only media validation on newly generated items."
+  ],
+  "critical_code_review_comments": [
+    "backend/server.py remains a large monolith (>1500 lines); split routers/services to reduce regression risk.",
+    "generate_covers.py correctly preserves existing covers and compare-and-set safety, but report status transitions should continue to be monitored for partial-stop cases (budget/error)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter31_cover_run_readonly.py",
+    "/app/test_reports/iteration_12.json"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "At verification time, report 56ba... had existing_covers=396, total=41 missing set for this run, generated=17, errors=1, stop_reason=budget_or_quota, status=stopped. Validated all currently generated 17 hero/thumb public media endpoints as WebP portrait within limits (hero<=1200, thumb<=600). TTS endpoint returns 503 (disabled) and purchase creation returns 503 (payments not configured), consistent with TTS/Stripe disabled scope.",
+  "rca_of_issue": "Batch did not reach 41 because provider/credit constraints triggered budget stop. Evidence: stop_reason=budget_or_quota with one ChatError on lez-orientarsi-stelle and no signs of uncontrolled retries. Mitigation: resume only when budget available, targeting remaining missing IDs while preserving existing396 and current generated17."
+}

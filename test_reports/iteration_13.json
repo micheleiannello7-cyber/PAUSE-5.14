@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 13 frontend-only mobile-web tests for the /deep-dive/[id] intro screen and /(tabs)/discover. All requested checks PASS: full title renders without ellipsis for both /deep-dive/v4-caffe-espresso (82 chars) and /deep-dive/v5-lez-muscoli (80 chars); both dividers deep-dive-divider-title and deep-dive-divider-intro exist; cover card height reasonable (348-349px at 390x844 and 249px at 390x700, all > 150); deep-dive-start bottom fits within the viewport at both 390x844 and 390x700; scroll animation on 'Leggi la storia' is gradual (14 unique scrollTop samples over 1.5s with values increasing monotonically e.g. [0..5,21,58,124,197,333,507,696,771,815,833,843,844]) and ends at chapter 1 exactly (deep-dive-page-chapter-1 bbox at 0,0). Home discover: home-category-list renders 8 tiles with visible labels, tile h/w ratio 1.12 matches spec, active card's -category-icon is an <img> (3D artwork src=/api/category-media/scienza) not <svg>. NOTE: ReaderHeader title in the top bar still uses numberOfLines={2}, which visibly truncates long titles with an ellipsis at the top of the intro/chapter screens — this contradicts the spec 'titles must NEVER be truncated anywhere'.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ReaderHeader", "issue": "Top-bar story title uses numberOfLines={2} and is visibly truncated with an ellipsis on long titles (e.g. v4-caffe-espresso shows 'Come l\\'Italia ha inventato l\\'espresso (e perché non è stata...'). The review request states titles must NEVER be truncated anywhere. Reference: /app/frontend/src/components/reader-header.tsx:60", "testID": "n/a (header title)", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "expo-linear-gradient/*", "issue": "Web console warning: props.pointerEvents is deprecated. Use style.pointerEvents. Appears on the two hairline LinearGradient dividers in /app/frontend/app/deep-dive/[id].tsx:331,339."},
+      {"component": "StyleSheet.textShadow*", "issue": "Web console warning: 'textShadow*' style props are deprecated. Use 'textShadow' shorthand. Multiple styles in /app/frontend/app/deep-dive/[id].tsx (coverTitle, introEyebrow, hook) still use textShadowColor/textShadowOffset/textShadowRadius."},
+      {"component": "Reanimated Easing.inOut(Easing.cubic)", "issue": "Web console warning: '[Reanimated] Selected easing is not currently supported on web. Using linear easing instead.' at /app/frontend/app/deep-dive/[id].tsx:160. Not blocking (animation still gradual — 14 unique scrollTop samples), but produces a noisy log on every deep-dive open."}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/artifacts_iter13/deep_dive_390_844.jpeg",
+    "/app/test_reports/artifacts_iter13/muscoli_390x844_fresh.jpeg",
+    "/app/test_reports/artifacts_iter13/caffe_390x700.jpeg",
+    "/app/test_reports/artifacts_iter13/muscoli_390x700.jpeg",
+    "/app/test_reports/artifacts_iter13/discover_390.jpeg"
+  ],
+  "action_items": [
+    "Remove numberOfLines={2} from ReaderHeader title (or replace with a length-based font-size scaling like CoverTitle) to honor the 'no truncation anywhere' rule.",
+    "Optional: move pointerEvents='none' from JSX prop to style.pointerEvents on the two divider LinearGradients in /app/frontend/app/deep-dive/[id].tsx to silence the deprecation warning.",
+    "Optional: consolidate textShadow* into the shorthand textShadow to silence the deprecation warning on web.",
+    "Optional: swap Easing.inOut(Easing.cubic) for a web-supported easing (or gate on Platform.OS !== 'web') to avoid the Reanimated warning on every deep-dive open."
+  ],
+  "critical_code_review_comments": [
+    "CoverTitle in /app/frontend/app/deep-dive/[id].tsx correctly scales fontSize by title length and removes numberOfLines — good fix that meets the spec on the cover. However the same principle was not applied to ReaderHeader title, which still truncates.",
+    "cardH computation subtracts sheetH (measured lazily). Initial sheetH default 430 is used before layout; verified this still yields cover height > 150 on 390x700 (249px). Reasonable."
+  ],
+  "updated_files": ["/app/test_reports/iteration_13.json"],
+  "success_rate": {"backend": "n/a (not tested per request)", "frontend": "100% on requested items; 1 additional truncation issue found in ReaderHeader"},
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All requested intro-screen assertions pass on both /deep-dive/v4-caffe-espresso and /deep-dive/v5-lez-muscoli at 390x844 and 390x700. deep-dive-start scroll produces a ~0.9s Reanimated animation on web (14 unique scrollTop samples increasing from 0 to full page height). Home /(tabs)/discover tiles are compacted (h/w=1.12) and the active card's category chip icon is a 3D <img>. One additional finding beyond the request: ReaderHeader (top bar) title uses numberOfLines={2} in /app/frontend/src/components/reader-header.tsx:60 and truncates long titles with '...' — contradicts the 'never truncate titles anywhere' rule.",
+  "rca_of_issue": "The intro-screen truncation fix was applied to the CoverTitle component only; the ReaderHeader's title also displays the story title (at the top of every reader page) and still caps at 2 lines with ellipsis. Fix: remove numberOfLines or use a length-based font-size like CoverTitle for the header title as well."
+}

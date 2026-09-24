@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 9 — Verified the three Expo Go bug fixes via static grep + web preview + backend pytest. (1) `grep -rn absoluteFillObject /app/frontend/app /app/frontend/src` returned zero matches. (2) Inspected every `useAnimatedStyle`/`useAnimatedProps` worklet body in reader-cover-backdrop.tsx, reader-section.tsx, reader-header.tsx and app/deep-dive/[id].tsx — all worklets only use `interpolate`, `Extrapolation.CLAMP`, math and SharedValue reads; no `withAlpha(`, no theme-color string building or other non-worklet JS call inside a worklet callback. end-action-button.tsx pre-computes `accentBorder`/`accentBg` on JS thread (already noted in-code). (3) Onboarding topics screen at 390×844 shows 13 category tiles, every `category-art-*-image` node has non-zero bounding box (12× 94×94 tiles + `category-art-all-image` 106×106, artwork container fills the tile). (4) Reader `/deep-dive/why-we-yawn` renders and scrolls with only harmless Reanimated/textShadow/pointerEvents web deprecation warnings; no Worklets/Remote Function errors. (5) Info grid measured: `story-info-grid-kind-icon` 44×44, `story-info-grid-category-icon` 44×44, `story-info-grid-time-icon` 46×46 — visually equal weight. (6) Backend `GET /api/category-media/corpo-umano?cutout=true` returns 200 image/png, exactly 320×320 RGBA, all four corners alpha=0, and alpha bounding-box height 262 (≥ 192 = 60% of 320). No blockers found.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_category_cutout.py",
+    "/app/test_reports/pytest/iter9_cutout.xml"
+  ],
+  "action_items": [
+    "(Non-blocking, web-only deprecation warnings observed during testing — not requested to fix, but worth queueing) Replace remaining `style.resizeMode` with `props.resizeMode` (some legacy Image usage), migrate `props.pointerEvents` to `style.pointerEvents`, and consolidate `textShadow*` shorthand — none affect native. These are just noise in web preview logs."
+  ],
+  "critical_code_review_comments": [
+    "reader-cover-backdrop.tsx: worklets are now purely numeric (transform + opacity), which is the correct pattern for RN 0.86 + Reanimated 4 — the `LinearGradient` colors that use `withAlpha` are computed in the JSX render body on the JS thread, not inside the worklets. Good.",
+    "category-artwork.tsx `fill` style now uses explicit `position:'absolute', top/left/right/bottom:0` instead of `StyleSheet.absoluteFillObject` — this is the correct fix for the removed alias.",
+    "media_opt.cutout_png uses fit_square/key_out_background from generate_cta_icons for tight cropping — verified alpha bbox ≥ 60% of 320 canvas for corpo-umano."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_category_cutout.py (new — 4 tests, 3 passed, 1 skipped for optional extra categories)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None — used existing story `why-we-yawn` and category `corpo-umano`.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The three Expo Go bugs (missing 3D category icons on onboarding grid, reader worklet crash from withAlpha in useAnimatedStyle, undersized category icon in reader info grid) are verified fixed both by static code review and by web preview rendering + backend pytest. Web preview cannot reproduce the original worklet crash (it only manifested on native), so trust the static check: no worklet in the four target files calls a non-worklet JS function. If regressions come back, first `grep -rn absoluteFillObject /app/frontend` and `grep -n withAlpha src/components/reader-*.tsx app/deep-dive/[id].tsx` and check that every hit is outside a `useAnimatedStyle(() => {...})` body.",
+  "rca_of_issue": "N/A — verification-only iteration; no new bugs found."
+}
