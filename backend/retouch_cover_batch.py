@@ -25,6 +25,22 @@ RETOUCHES = {
     "v8-lez-saying-no-without-guilt-the-6-step-method": "quarantine-incomplete-portrait",
 }
 
+# A story ID alone is not approval to edit future regenerated versions.
+# These coordinates/rejections were reviewed ONLY in these historical batches.
+LEGACY_RETOUCH_IDS = {
+    "7dbe6ded62644d7e9ccf42931de7f6d0": {
+        "v8-why-do-we-feel-embarrassed-for-other-people",
+        "v8-why-do-we-drive-on-the-right-and-the-british-on-the-left",
+    },
+    "56ba5742cf674cb7a8acbbc14cf85680": {
+        "v8-lez-watching-wildlife-without-disturbing-it",
+        "v8-lez-posture-and-breath-6-minutes-to-feel-better-at-your-desk",
+        "v8-lez-arguing-well-6-rules-for-a-discussion-that-resolves",
+        "v8-lez-visiting-an-archaeological-site-and-understanding-what-y",
+        "v8-lez-saying-no-without-guilt-the-6-step-method",
+    },
+}
+
 
 def retouch(raw, operation):
     image = Image.open(io.BytesIO(raw)).convert("RGB")
@@ -73,7 +89,11 @@ def retouch(raw, operation):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path)
+    parser.add_argument("--only", help="Process only this explicitly reviewed new cover")
+    parser.add_argument("--quarantine-reason", help="Reject only --only, preserving its paid original")
     args = parser.parse_args()
+    if args.quarantine_reason and not args.only:
+        parser.error("--quarantine-reason requires exactly one --only ID")
     with (ROOT / ".cover_generation.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         report = json.loads(args.report.read_text())
@@ -84,12 +104,17 @@ def main():
             db = client[os.environ["DB_NAME"]]
             for record in list(report["generated"]):
                 sid = record["id"]
-                if sid not in RETOUCHES or record.get("retouch"):
+                if args.only and sid != args.only:
+                    continue
+                legacy_ids = LEGACY_RETOUCH_IDS.get(report["id"], set())
+                operation = ("quarantine-manual" if args.quarantine_reason else
+                             RETOUCHES.get(sid) if sid in legacy_ids else None)
+                if not operation or record.get("retouch"):
                     continue
                 if sid in baseline:
                     raise RuntimeError("Pre-existing covers must never be retouched")
                 source = ROOT.parent / record["source_file"]
-                if RETOUCHES[sid] == "quarantine-incomplete-portrait":
+                if operation.startswith("quarantine-"):
                     quarantine = args.report.parent / "rejected" / source.name
                     quarantine.parent.mkdir(exist_ok=True)
                     # Archive BEFORE unlinking so no paid original is ever lost.
@@ -102,7 +127,7 @@ def main():
                         raise RuntimeError(f"Concurrent cover change: {sid}")
                     source.unlink()  # Startup must not restore a rejected cover.
                     record["source_file"] = str(quarantine.relative_to(ROOT.parent))
-                    record["rejection_reason"] = "Artificial band obscures eyes/forehead; cannot repair without new AI"
+                    record["rejection_reason"] = args.quarantine_reason or "Artificial band obscures eyes/forehead; cannot repair without new AI"
                     report.setdefault("rejected", []).append(record)
                     report["generated"].remove(record)
                     report["published"] = len(report["generated"])
@@ -114,7 +139,7 @@ def main():
                     temporary.replace(args.report)
                     print(f"Quarantined {sid}: original retained, no AI call", flush=True)
                     continue
-                raw = retouch(source.read_bytes(), RETOUCHES[sid])
+                raw = retouch(source.read_bytes(), operation)
                 archive = args.report.parent / "originals" / source.name
                 archive.parent.mkdir(exist_ok=True)
                 if not archive.exists():
@@ -129,7 +154,7 @@ def main():
                 temporary.write_bytes(raw)
                 temporary.replace(source)
                 record.update(fields)
-                record["retouch"] = {"operation": RETOUCHES[sid], "previous_hero": previous,
+                record["retouch"] = {"operation": operation, "previous_hero": previous,
                                      "at": datetime.now(timezone.utc).isoformat(), "ai_calls": 0}
                 temporary = args.report.with_suffix(".tmp")
                 temporary.write_text(json.dumps(report, ensure_ascii=False, indent=2))

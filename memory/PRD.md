@@ -433,3 +433,36 @@ Richiesta utente (IT): all'apertura le copertine arrivavano dopo qualche secondo
 - Backend riavviato: /api/health OK (db true), 12 categorie + 437 storie auto-seed. `restore_category_art.py` eseguito: 13 asset webp categorie ripristinati in Object Storage.
 - Expo riavviato: Metro su :3000, intro PAUSE renderizza (montagna/lago con CTA "Start your pause") sul dominio pubblico.
 - Scelte utente confermate: TTS OpenAI e Stripe DISABILITATI; core attivo con Emergent LLM key. Nessuna nuova integrazione a runtime.
+
+## Richiesta corrente — ultime 25 copertine e revisione integrale
+- Utente autorizza le 25 mancanti, stesso stile e WebP qualità84; successivamente
+  controllo visivo di TUTTE le copertine (bellezza, coerenza titolo, artefatti,
+  errori anche se pertinenti, somiglianze). Autorizzate sostituzioni solo DOPO le vuote.
+- Baseline confermata in MongoDB: 437 contenuti, 412 coperti, 25 mancanti.
+- Lotto in corso: `memory/cover_batches/b05599495e734316a8fa89c707c13a43.json`;
+  modello preesistente Gemini Nano Banana, concorrenza1, stop immediato su credito/quota.
+- `cover_prompt_overrides.json`: soggetti espliciti e distinti per le25; nessun cambio UI.
+- `catalog_cover_sheets.py`: snapshot read-only completo con immagini reali/titoli/hook
+  e candidati duplicati; rifiuta l'avvio finché restano copertine vuote.
+- `replace_reviewed_covers.py`: prepara candidate fuori da covers/, mantiene le
+  vecchie attive fino all'approvazione visiva, backup, upload e aggiornamento protetto.
+- Lotto FERMATO per `Budget has been exceeded` alla17ª richiesta (teoria colore).
+  **16 generate, 15 pubblicate, 1 scartata;427/437 coperte,10 mancanti.**
+- `lez-orbite-gravita`: scartata dopo ispezione ingrandita, Sole sul tracciato
+  attorno alla Terra; originale in `cover_batches/rejected/`, nessuna rigenerazione.
+- Resoconto preliminare nuovo lotto: `memory/cover_batches/final25_quality_review.md`.
+  Tutte412 preesistenti da preservare; revisione GLOBALE e sostituzioni NON iniziate
+  perché l'utente richiede di completare prima le vuote. Nessun controllo globale dichiarato.
+- P0 bloccato: credito API esaurito; completare10 dopo ripresa autorizzata, poi
+  revisione integrale e sostituzioni. Non riavviare automaticamente il generatore.
+- Verifica conclusa sul lotto parziale: `test_reports/iteration_15.json`, backend
+  10/10, Home e lettore con3 nuove immagini reali,390/320px senza overflow.
+  Verificati30 endpoint media nuovi, tutte412 precedenti invariate, scarto orbitale
+  non ripristinato, conteggio reale427/437 e10 mancanti.
+- Segnalazione preventiva del tester risolta: `retouch_cover_batch.py` limita i
+  vecchi ritocchi/esclusioni agli specifici lotti storici, non al solo id storia.
+  Esecuzione sul nuovo lotto = NO-OP con SHA256 report identico; suite del tester
+  rieseguita10/10 (`pytest/iter15_cover_batch_b055_followup.xml`). Nessuna AI chiamata.
+- Lint Python superato. Non dichiarare completata la richiesta globale: credito
+  esaurito e revisione delle437 ancora sospesa nell'ordine richiesto dall'utente.
+- TTS/Stripe e autenticazione invariati. App anonima, nessuna credenziale richiesta.

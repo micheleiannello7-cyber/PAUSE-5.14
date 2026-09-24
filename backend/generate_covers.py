@@ -65,6 +65,10 @@ def budget_error(e: Exception) -> bool:
 
 def prompt_for(doc: dict) -> str:
     sid = doc["id"]
+    overrides_path = ROOT_DIR / "cover_prompt_overrides.json"
+    overrides = json.loads(overrides_path.read_text()) if overrides_path.exists() else {}
+    if sid in overrides:
+        return overrides[sid] + STYLE
     if doc.get("kind") == "lesson":
         base = LESSON_IMAGE_PROMPTS.get(sid)
         if base:

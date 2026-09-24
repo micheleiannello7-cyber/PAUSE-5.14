@@ -9,6 +9,15 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def review_font(size):
+    """Use a Unicode font so Italian accents are not shown as missing glyphs."""
+    for filename in ("/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+                     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+        if Path(filename).exists():
+            return ImageFont.truetype(filename, size=size)
+    return ImageFont.load_default(size=size)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reports", nargs="+", type=Path)
@@ -17,7 +26,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     records = [item for path in args.reports
                for item in json.loads(path.read_text())["generated"]]
-    font = ImageFont.load_default(size=17)
+    font = review_font(17)
     for start in range(0, len(records), 12):
         batch = records[start:start + 12]
         sheet = Image.new("RGB", (1200, ((len(batch) + 3) // 4) * 450), "#101621")
