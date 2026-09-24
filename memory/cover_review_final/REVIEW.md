@@ -12,7 +12,7 @@ ingrandimento dei casi dubbi, confronto SHA256/dHash per i duplicati. Nessuna ch
 | Esito | Copertine |
 |---|---|
 | OK (belle, coerenti, senza difetti) | **387** |
-| Da rifare — priorità ALTA | **13** |
+| Da rifare — priorità ALTA | **15** (incl. caricatore #421 e stomaco #74 segnalati dall'utente) |
 | Da rifare — priorità MEDIA | **11** |
 | Da migliorare — priorità BASSA | **16** |
 | Duplicati byte-identici (gruppi) | 8 gruppi, 17 storie coinvolte |

@@ -116,6 +116,12 @@
   {"id": "v8-how-much-does-earth-weigh-and-how-did-we-measure-it", "number": 344, "priority": "bassa", "issue": "scientifico",
    "reason": "Terra con anelli luminosi e bracci meccanici, rischio di lettura errata (anelli planetari)",
    "prompt": "A brass torsion balance apparatus in a Victorian laboratory with a small globe of the Earth beside it, candlelight"},
+  {"id": "v8-why-does-a-charger-stay-warm-even-when-it-s-charging-not", "number": 421, "priority": "alta", "issue": "oggetto generato male",
+   "reason": "Caricatore con spine da muro su ENTRAMBE le estremità (oggetto impossibile)",
+   "prompt": "A single white USB phone charger plugged into a wall socket, prongs correctly inserted, faint heat shimmer rising from it, dark bedside table at night, one plug only"},
+  {"id": "v4-stomaco-acido", "number": 74, "priority": "alta", "issue": "troppo simile",
+   "reason": "Stomaco di vetro ambrato in laboratorio: quasi identico al fegato di #73 (stesso stile, colore e scena)",
+   "prompt": "Extreme close-up of a metal razor blade slowly corroding inside a bubbling glass of gastric acid, dramatic warm rim light, dark kitchen background"},
   {"id": "how-oled-works", "number": 409, "priority": "bassa", "issue": "debole",
    "reason": "TV spento in una stanza scura con galassia, soggetto poco leggibile",
    "prompt": "Extreme macro of an OLED screen showing individual glowing red, green and blue sub-pixels forming an image, dark surround"}

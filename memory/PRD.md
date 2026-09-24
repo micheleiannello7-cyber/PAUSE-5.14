@@ -477,4 +477,8 @@ Richiesta utente (IT): all'apertura le copertine arrivavano dopo qualche secondo
 - Report: `memory/cover_review_final/REVIEW.md`; decisioni pronte per
   `replace_reviewed_covers.py` in `flagged_covers.json` (id, reason, prompt).
 - Nessuna chiamata AI, nessuna scrittura su MongoDB/Object Storage/covers/.
-- Ordine futuro con credito: 10 vuote → 13 ALTA → 11 MEDIA → 16 BASSA (solo se richiesto).
+- Ordine futuro con credito: 10 vuote → 15 ALTA → 11 MEDIA → 16 BASSA (solo se richiesto).
+- Aggiunte su segnalazione utente: caricatore #421 con spine su entrambe le estremità (ALTA) e
+  stomaco #74 quasi identico al fegato #73 (ALTA, cambiare scena). Totale segnalate 42.
+- **Consegna per il prossimo agente: `memory/cover_review_final/HANDOFF_GRAVI.md`** (lista GRAVI,
+  comandi, ordine, vincoli). Dati macchina in `flagged_covers.json`.
