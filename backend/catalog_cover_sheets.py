@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 import os
+import sys
 import textwrap
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -21,16 +22,17 @@ load_dotenv(ROOT / ".env")
 BASE = dotenv_values(ROOT.parent / "frontend" / ".env")["EXPO_PUBLIC_BACKEND_URL"].rstrip("/")
 
 
-def snapshot():
+def snapshot(allow_missing=False):
     with MongoClient(os.environ["MONGO_URL"]) as client:
         docs = list(client[os.environ["DB_NAME"]].stories.find({}, {
             "_id": 0, "id": 1, "title": 1, "hook": 1, "category_id": 1,
             "hero_image_generated": 1, "hero_image_thumb": 1, "hero_image": 1,
         }))
     missing = [d["id"] for d in docs if not (d.get("hero_image_generated") or d.get("hero_image"))]
-    if missing:
+    if missing and not allow_missing:
         raise SystemExit(f"Finish missing covers BEFORE catalog review: {len(missing)}")
-    return sorted(docs, key=lambda d: (d.get("category_id", ""), d["title"]))
+    docs = [d for d in docs if d.get("hero_image_generated") or d.get("hero_image")]
+    return sorted(docs, key=lambda d: (d.get("category_id", ""), d["title"])), missing
 
 
 def fetch(item):
@@ -59,40 +61,40 @@ def fetch(item):
     return entry
 
 
+PER_SHEET = 12
+CELL_W, CELL_H, IMG_H = 400, 660, 520
+
+
 def render(entries):
-    pages = []
-    font = review_font(24)
-    small = review_font(20)
-    for start in range(0, len(entries), 6):
-        page = Image.new("RGB", (1800, 1800), "#111827")
+    """One JPG contact sheet per 12 covers (4x3) with number, category and title."""
+    font = review_font(19)
+    for start in range(0, len(entries), PER_SHEET):
+        batch = entries[start:start + PER_SHEET]
+        rows = (len(batch) + 3) // 4
+        page = Image.new("RGB", (CELL_W * 4, CELL_H * rows), "#111827")
         draw = ImageDraw.Draw(page)
-        for slot, entry in enumerate(entries[start:start + 6]):
-            x, y = slot % 3 * 600 + 12, slot // 3 * 900 + 12
-            draw.text((x, y), f"#{entry['number']:03d} | {entry.get('category_id', '')}", font=font, fill="white")
+        for slot, entry in enumerate(batch):
+            x, y = slot % 4 * CELL_W + 6, slot // 4 * CELL_H + 4
             if not entry["error"]:
                 with Image.open(ROOT.parent / entry["file"]) as image:
-                    thumb = ImageOps.contain(image, (576, 590))
-                    page.paste(thumb, (x + (576 - thumb.width) // 2, y + 40))
+                    thumb = ImageOps.contain(image, (CELL_W - 12, IMG_H))
+                    page.paste(thumb, (x + (CELL_W - 12 - thumb.width) // 2, y))
             else:
-                draw.text((x, y + 120), "IMAGE UNAVAILABLE", font=font, fill="orange")
-            offset = y + 640
-            for line in textwrap.wrap(entry["title"], 42):
+                draw.text((x, y + 200), "IMAGE UNAVAILABLE", font=font, fill="orange")
+            offset = y + IMG_H + 6
+            draw.text((x, offset), f"#{entry['number']:03d} {entry.get('category_id', '')}", font=font, fill="#facc15")
+            offset += 24
+            for line in textwrap.wrap(entry["title"], 38)[:4]:
                 draw.text((x, offset), line, font=font, fill="white")
-                offset += 29
-            offset += 10
-            for line in textwrap.wrap(entry.get("hook", ""), 52)[:5]:
-                draw.text((x, offset), line, font=small, fill="#cbd5e1")
-                offset += 24
-        pages.append(page)
-    for start in range(0, len(pages), 6):
-        first, last = start * 6 + 1, min((start + 6) * 6, len(entries))
-        target = OUT / f"catalog-{first:03d}-{last:03d}.pdf"
-        pages[start].save(target, save_all=True, append_images=pages[start + 1:start + 6], resolution=140)
+                offset += 23
+        target = OUT / f"sheet-{start + 1:03d}-{start + len(batch):03d}.jpg"
+        page.save(target, quality=82)
         print(target, flush=True)
 
 
 def main():
-    docs = snapshot()
+    allow_missing = "--allow-missing" in sys.argv
+    docs, missing = snapshot(allow_missing)
     if (OUT / "catalog.json").exists():
         raise SystemExit("Snapshot already exists; preserve its review numbering.")
     (OUT / "images").mkdir(parents=True, exist_ok=True)
@@ -109,7 +111,7 @@ def main():
                               "ids": [a["id"], b["id"]], "distance": distance,
                               "identical": a["sha256"] == b["sha256"]})
     report = {"created_at": datetime.now(timezone.utc).isoformat(), "total": len(entries),
-              "entries": entries, "similarity_candidates": pairs}
+              "missing_ids": missing, "entries": entries, "similarity_candidates": pairs}
     (OUT / "catalog.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))
     render(entries)
     print(json.dumps({"total": len(entries), "errors": sum(bool(e["error"]) for e in entries),

@@ -466,3 +466,15 @@ Richiesta utente (IT): all'apertura le copertine arrivavano dopo qualche secondo
 - Lint Python superato. Non dichiarare completata la richiesta globale: credito
   esaurito e revisione delle437 ancora sospesa nell'ordine richiesto dall'utente.
 - TTS/Stripe e autenticazione invariati. App anonima, nessuna credenziale richiesta.
+
+## Revisione visiva integrale — giugno 2026 (solo segnalazioni, nessuna sostituzione)
+- Utente: «fai la revisione delle esistenti, segnale e le modificheremo in futuro».
+- `catalog_cover_sheets.py --allow-missing`: snapshot read-only delle 427 copertine esistenti
+  (10 vuote escluse e listate in `missing_ids`), fogli JPG da 12 in `memory/cover_review_final/`.
+- Tutti i 36 fogli ispezionati + zoom sui dubbi. Esito: **387 OK, 40 segnalate**
+  (13 ALTA: cavallo-zebra, occhio nella cipolla, dipinto per le spezie, spiaggia per i deserti,
+  9 con lettering "EDITORIAL/PAUSE/MAGAZINE"; 11 MEDIA; 16 BASSA). 8 gruppi di foto duplicate.
+- Report: `memory/cover_review_final/REVIEW.md`; decisioni pronte per
+  `replace_reviewed_covers.py` in `flagged_covers.json` (id, reason, prompt).
+- Nessuna chiamata AI, nessuna scrittura su MongoDB/Object Storage/covers/.
+- Ordine futuro con credito: 10 vuote → 13 ALTA → 11 MEDIA → 16 BASSA (solo se richiesto).
